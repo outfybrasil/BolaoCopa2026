@@ -627,26 +627,23 @@ function normalizeTeamName(name) {
 }
 
 // ===== Configuração do proxy da API =====
-// Em desenvolvimento (node server.js) e em produção (Netlify),
-// o path /api/* é roteado para o proxy que adiciona a chave.
-// Em qualquer outro host statico, você precisa de um proxy externo.
+// Em desenvolvimento (node server.js), usa /api/...
+// Em produção (Netlify), usa a Function diretamente
 function getApiBase() {
-  // Netlify e servidor local: /api/* já funciona
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ||
-      location.hostname.endsWith('.netlify.app')) {
-    return '';
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    return ''; // server.js faz proxy em /api/
   }
-  // Para GitHub Pages ou outro host, configure aqui:
-  return 'https://meu-bolao.workers.dev'; // ← Opção Cloudflare Worker
+  // Em produção, retorna a base da Function
+  return '/.netlify/functions/proxy?path=';
 }
 
-// ===== Fetch via proxy local (server.js) ou Netlify =====
+// ===== Fetch via proxy =====
 async function fetchFootballData(url) {
   const apiPath = url.replace('https://api.football-data.org', '');
   const base = getApiBase();
 
   if (base) {
-    const proxyUrl = `${base}/api${apiPath}`;
+    const proxyUrl = `${base}v4${apiPath}`;
     const res = await fetch(proxyUrl);
     return res;
   }
@@ -1219,7 +1216,7 @@ async function testApiConnection() {
 
   try {
     if (base) {
-      res = await fetch(`${base}/api/v4/competitions/WC/matches?limit=1`);
+      res = await fetch(`${base}v4/competitions/WC/matches?limit=1`);
     } else {
       res = await fetch('/api/v4/competitions/WC/matches?limit=1');
     }
