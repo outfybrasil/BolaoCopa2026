@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolão Copa do Mundo 2026 - Assessoria de Recursos</title>
+<script>
+window.onerror = function(message, source, lineno, colno, error) {
+  const errCard = document.createElement('div');
+  errCard.style.position = 'fixed';
+  errCard.style.top = '20px';
+  errCard.style.left = '50%';
+  errCard.style.transform = 'translateX(-50%)';
+  errCard.style.background = 'linear-gradient(135deg, #ff2a5f, #b91c1c)';
+  errCard.style.color = '#fff';
+  errCard.style.padding = '16px 28px';
+  errCard.style.borderRadius = '8px';
+  errCard.style.zIndex = '999999';
+  errCard.style.boxShadow = '0 10px 30px rgba(0,0,0,0.6)';
+  errCard.style.fontSize = '13px';
+  errCard.style.fontWeight = 'bold';
+  errCard.style.textAlign = 'center';
+  errCard.style.border = '1px solid rgba(255,255,255,0.25)';
+  errCard.style.minWidth = '320px';
+  errCard.innerHTML = `⚠️ Erro no Navegador:<br><span style="font-weight:normal;font-size:11px;font-family:monospace;display:block;margin-top:6px;background:rgba(0,0,0,0.2);padding:6px;border-radius:4px;word-break:break-all;">${message}<br>Arquivo: ${source ? source.split('/').pop() : 'desconhecido'} (Linha ${lineno})</span>`;
+  if (document.body) {
+    document.body.appendChild(errCard);
+  } else {
+    window.addEventListener('DOMContentLoaded', () => document.body.appendChild(errCard));
+  }
+  return false;
+};
+</script>
+<meta name="description" content="Bolão interativo da Copa do Mundo FIFA 2026 — Assessoria de Recursos TJPR">
+<meta name="color-scheme" content="dark">
+<!-- Biblioteca do Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- CSS Externo Modular -->
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-main-grid">
+    <div class="header-branding">
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <img src="logo_copa_2026.png" alt="Logo Copa 2026" class="header-logo" style="height: 65px; width: auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); border-radius: 4px;">
+        <div>
+          <h1>Bolão Copa do Mundo 2026</h1>
+          <h2>Assessoria de Recursos — EUA <img src="https://flagcdn.com/w40/us.png" class="country-flag-img" style="vertical-align:-0.1em;margin:0 4px;height:0.9em;width:1.3em;"> México <img src="https://flagcdn.com/w40/mx.png" class="country-flag-img" style="vertical-align:-0.1em;margin:0 4px;height:0.9em;width:1.3em;"> Canadá <img src="https://flagcdn.com/w40/ca.png" class="country-flag-img" style="vertical-align:-0.1em;margin:0 4px;height:0.9em;width:1.3em;"></h2>
+        </div>
+      </div>
+    </div>
+    
+    <div class="header-user-status" id="headerUserStatus">
+      <div class="user-status-card">
+        <div class="status-indicator-row">
+          <span class="status-dot offline"></span>
+          <span class="status-label">Visitante</span>
+        </div>
+        <div class="status-name-row">
+          <span class="name-display">Crie uma conta para salvar seus palpites.</span>
+        </div>
+        <div class="status-actions">
+          <button class="btn btn-gold btn-sm" onclick="openAuthModal()">Entrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-controls-row">
+    <div class="participant-input-wrapper">
+      <label>Participante:</label>
+      <input type="text" id="participantName" placeholder="Digite seu nome...">
+    </div>
+    
+    <div class="actions-group">
+      <button class="btn btn-glass" onclick="window.print()">Imprimir</button>
+      <button class="btn btn-red" onclick="resetAll()">Limpar Palpites</button>
+      <button class="btn btn-green-glow" id="btnSavePredictions" onclick="btnSavePredictionsClick()">Salvar Palpites</button>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showSection('groups',this)">Grupos</div>
+  <div class="tab" onclick="showSection('bracket',this)">Chaveamento</div>
+  <div class="tab" onclick="showSection('results',this)">Resultados</div>
+  <div class="tab" id="tabRanking" onclick="showSection('ranking',this)">Classificação</div>
+  <div class="tab" onclick="showSection('summary',this)">Resumo</div>
+</div>
+
+<!-- GROUPS SECTION -->
+<div id="groups" class="section active">
+  <div class="group-instructions">
+    Clique nas seleções para definir a classificação do grupo.<br>
+    1º clique = 🥇 1º lugar &nbsp;|&nbsp;
+    2º clique = 🥈 2º lugar &nbsp;|&nbsp;
+    3º clique = remove a seleção do pódio do grupo<br>
+    <span style="font-size:.85em;color:#888">Os palpites de cada grupo serão travados 30 minutos antes do primeiro jogo do grupo.</span>
+  </div>
+  <div class="groups-grid" id="groupsGrid"></div>
+</div>
+
+<!-- BRACKET SECTION -->
+<div id="bracket" class="section">
+  <div class="bracket-note">
+    O chaveamento segue o formato oficial da FIFA com 48 seleções.<br>
+    Os 8 melhores 3ºs colocados são calculados automaticamente pelo Ranking FIFA.<br>
+    Clique no time em cada confronto para avançá-lo à próxima fase.
+  </div>
+  <div class="bracket-container">
+    <div class="bracket" id="bracketView"></div>
+  </div>
+</div>
+
+<!-- RESULTS SECTION -->
+<div id="results" class="section">
+  <div class="results-container" id="resultsView"></div>
+</div>
+
+<!-- RANKING SECTION -->
+<div id="ranking" class="section">
+  <div class="summary-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+      <h3 style="color:var(--gold); font-family: inherit; font-size:1.15em;">Classificação Geral</h3>
+      <span id="rankingUpdateText" style="font-size:.78em; color:var(--text-muted);">Atualizando...</span>
+    </div>
+    <p style="font-size:.85em; color:var(--text-secondary); margin-bottom:20px; line-height:1.6;">
+      Classificação em tempo real dos participantes do bolão.<br>
+      <strong>Regras do Pódio</strong>: Apenas quem acertar o Campeão do Mundo (vencedor da grande final) é elegível a entrar nos 3 primeiros lugares da premiação. Em caso de empate, o critério é a maior pontuação acumulada nas fases de chaveamento.
+    </p>
+    <div class="ranking-table-container">
+      <table class="ranking-table">
+        <thead>
+          <tr style="border-bottom:2px solid var(--glass-border); color:var(--gold); font-size:.82em; text-transform:uppercase;">
+            <th style="padding:12px 10px;">Pos</th>
+            <th style="padding:12px 10px;">Participante</th>
+            <th style="padding:12px 10px; text-align:center;">Pontos</th>
+            <th style="padding:12px 10px; text-align:center;">Palpite Campeão</th>
+            <th style="padding:12px 10px; text-align:center;">Acertou Campeão?</th>
+          </tr>
+        </thead>
+        <tbody id="rankingTableBody">
+          <!-- Preenchido dinamicamente pelo JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SUMMARY SECTION -->
+<div id="summary" class="section">
+  <div class="summary-container" id="summaryView"></div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal" onclick="closeSettings()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3>Configurações</h3>
+    <div class="setting-group">
+      <label>🔑 Chave da API football-data.org (gratuita)</label>
+      <input type="text" id="apiKeyInput" placeholder="Cole sua chave da football-data.org aqui...">
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-blue btn-sm" id="btnTestApi" onclick="testApiConnection()" style="flex:1; justify-content:center;">🔌 Testar Conexão</button>
+        <button class="btn btn-glass btn-sm" onclick="window.open('https://www.football-data.org/client/register','_blank')" style="flex:1; justify-content:center;">🔑 Cadastrar Grátis</button>
+      </div>
+      <p style="font-size:.75em;color:#888;margin-top:8px;">
+        <strong>100% gratuito</strong> — cadastre-se em football-data.org, receba a chave por email e cole acima.<br>
+        A API atualiza automaticamente os placares dos jogos ao vivo e encerrados.<br>
+        Sem chave, você pode digitar os placares manualmente na aba Resultados.
+      </p>
+    </div>
+    
+    <div class="setting-group" style="border-top:1px solid var(--glass-border); padding-top:14px; margin-top:14px;">
+      <label style="color:var(--gold); font-weight:600;">Supabase URL (Sincronização em Nuvem)</label>
+      <input type="text" id="supabaseUrlInput" placeholder="https://xxxx.supabase.co">
+    </div>
+    <div class="setting-group">
+      <label style="color:var(--gold); font-weight:600;">Supabase Anon Key</label>
+      <input type="text" id="supabaseKeyInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+      <p style="font-size:.75em;color:#888;margin-top:6px;">
+        Insira suas credenciais do Supabase para habilitar o salvamento em nuvem dos seus palpites, autenticação segura e a tabela de classificação em tempo real!
+      </p>
+    </div>
+    
+    <div class="setting-group" style="border-top:1px solid var(--glass-border); padding-top:14px; margin-top:14px;">
+      <label style="color:var(--gold); font-weight:600;">Backup Local de Palpites (Offline)</label>
+      <p style="font-size:.75em;color:#888;margin-bottom:8px;">Salve seus palpites localmente em seu dispositivo ou recupere de um arquivo exportado anteriormente.</p>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-blue btn-sm" onclick="exportPredictions()" style="flex:1; justify-content:center;">Exportar JSON</button>
+        <button class="btn btn-glass btn-sm" onclick="triggerImportPredictions()" style="flex:1; justify-content:center;">Importar JSON</button>
+      </div>
+      <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importPredictions(event)">
+    </div>
+    
+    <div class="setting-group" style="border-top:1px solid var(--glass-border); padding-top:14px; margin-top:14px;">
+      <label>Fuso Horário</label>
+      <p style="font-size:.88em;color:#ccc;">Brasília (UTC-3) — Horários exibidos neste fuso.</p>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-gold" onclick="saveSettings()">Salvar</button>
+      <button class="btn btn-glass" onclick="closeSettings()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal" onclick="closeAuthModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 id="authModalTitle" style="color:var(--gold); margin-bottom:20px; font-size:1.2em; text-transform:uppercase; font-weight:800;">Entrar no Bolão</h3>
+    
+    <div class="setting-group" id="usernameGroup" style="display:none;">
+      <label>Nome do Participante (exibido no ranking)</label>
+      <input type="text" id="authUsername" placeholder="Digite seu nome completo ou apelido...">
+    </div>
+    
+    <div class="setting-group">
+      <label>E-mail</label>
+      <input type="text" id="authEmail" placeholder="seu.email@exemplo.com">
+    </div>
+    
+    <div class="setting-group">
+      <label>Senha</label>
+      <input type="password" id="authPassword" placeholder="Sua senha secreta..." style="width:100%; padding:10px 14px; border-radius:6px; border:1px solid var(--glass-border); background:rgba(255,255,255,.05); color:#fff; font-size:.92em; outline:none; transition:border-color .3s;">
+    </div>
+    
+    <div style="font-size:.82em; color:var(--text-secondary); text-align:center; margin-top:12px;" id="authSwitchText">
+      Não possui conta? <a href="#" onclick="toggleAuthMode(true); event.preventDefault();" style="color:var(--gold); text-decoration:none; font-weight:600;">Cadastre-se agora</a>
+    </div>
+    
+    <div class="modal-btns" style="margin-top:20px;">
+      <button class="btn btn-gold" id="authSubmitBtn" onclick="handleAuthSubmit()" style="flex:1; justify-content:center;">Entrar</button>
+      <button class="btn btn-glass" onclick="closeAuthModal()">Fechar</button>
+    </div>
+
+    <div style="display:flex; align-items:center; margin:20px 0; color:var(--text-muted); font-size:.75em; text-transform:uppercase; letter-spacing:.8px;">
+      <div style="flex:1; height:1px; background:var(--glass-border);"></div>
+      <span style="margin:0 12px;">ou acesse com</span>
+      <div style="flex:1; height:1px; background:var(--glass-border);"></div>
+    </div>
+    
+    <button class="btn" onclick="handleGoogleLogin()" style="width:100%; justify-content:center; font-weight:600; background:#fff; color:#000; border:none; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+      <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:10px; vertical-align:middle;">
+        <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.85 2.99c.92-2.76 3.49-4.51 6.76-4.51z"/>
+        <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.73 2.89c2.18-2.01 3.7-4.99 3.7-8.62z"/>
+        <path fill="#FBBC05" d="M5.24 14.56c-.24-.72-.38-1.5-.38-2.31s.14-1.59.38-2.31L1.39 6.95C.5 8.75 0 10.77 0 12.9s.5 4.15 1.39 5.95l3.85-3.29z"/>
+        <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.73-2.89c-1.1.74-2.5 1.18-4.23 1.18-3.27 0-5.84-1.75-6.76-4.51L1.39 16.85C3.37 20.73 7.35 23 12 23z"/>
+      </svg>
+      Entrar com o Google
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- LÓGICA E CONSTANTES MODULARIZADAS -->
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
